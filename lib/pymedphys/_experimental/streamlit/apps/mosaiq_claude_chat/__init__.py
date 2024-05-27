@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Derek Lane, Cancer Care Associates
+# Copyright (C) 2024 Simon Biggs
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,25 +13,9 @@
 # limitations under the License.
 
 
-import pymedphys
+from pymedphys._streamlit import categories
 
-MSQ_SERVER = "localhost"
-MSQ_PORT = 1433
+from .app import main as main
 
-TEST_DB_NAME = "MosaiqTest77008"
-MIMIC_DB_NAME = "MosaiqMimicTest"
-
-SA_USER = "sa"
-SA_PASSWORD = "sqlServerPassw0rd"
-
-
-def connect(database=TEST_DB_NAME) -> pymedphys.mosaiq.Connection:
-    connection = pymedphys.mosaiq.connect(
-        MSQ_SERVER,
-        port=MSQ_PORT,
-        database=database,
-        username=SA_USER,
-        password=SA_PASSWORD,
-    )
-
-    return connection
+CATEGORY = categories.DRAFT
+TITLE = "MOSAIQ Claude Chat"
