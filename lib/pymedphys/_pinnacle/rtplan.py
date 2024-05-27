@@ -52,6 +52,7 @@ from .constants import (
     RTPlanSOPClassUID,
     RTStructSOPClassUID,
 )
+from .rtstruct import find_iso_center_by_name
 
 
 def convert_plan(plan, export_path):
@@ -213,15 +214,17 @@ def convert_plan(plan, export_path):
             "MachineNameAndVersion"
         ].partition(":")[0]
 
+        beam_iso_center_dicom = find_iso_center_by_name(plan, beam["IsocenterName"])
+
         doserefpt = None
         for point in plan.points:
             if point["Name"] == beam["PrescriptionPointName"]:
-                doserefpt = plan.convert_point(point)
+                doserefpt = plan.convert_point(point, True)
                 plan.logger.debug("Dose reference point found: %s", point["Name"])
 
         if not doserefpt:
             plan.logger.debug("No dose reference point, setting to isocenter")
-            doserefpt = plan.iso_center
+            doserefpt = plan.convert_point(plan.iso_center, True)
 
         plan.logger.debug("Dose reference point: %s", doserefpt)
 
@@ -570,7 +573,7 @@ def convert_plan(plan, export_path):
                     ].PatientSupportRotationDirection = "NONE"
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
-                    ].IsocenterPosition = plan.iso_center
+                    ].IsocenterPosition = beam_iso_center_dicom
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].GantryRotationDirection = gantryrotdir
@@ -836,7 +839,7 @@ def convert_plan(plan, export_path):
                     ].PatientSupportRotationDirection = "NONE"
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
-                    ].IsocenterPosition = plan.iso_center
+                    ].IsocenterPosition = beam_iso_center_dicom
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].GantryRotationDirection = gantryrotdir

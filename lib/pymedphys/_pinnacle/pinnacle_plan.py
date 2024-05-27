@@ -198,7 +198,9 @@ class PinnaclePlan:
         if isinstance(trial_name, str):
             for trial in self.trials:
                 if trial["Name"] == trial_name:
-                    self._trial_info = trial
+                    if self._trial_info != trial:
+                        self._trial_info = trial
+                        self.generate_plan_dose_uids()
                     self.logger.info("Active Trial set: %s", trial_name)
                     return
 
@@ -325,6 +327,43 @@ class PinnaclePlan:
 
         return False
 
+    def generate_plan_dose_uids(self, uid_type="HASH"):
+        entropy_srcs = []
+        if uid_type == "HASH":
+            entropy_srcs = [
+                self._pinnacle.patient_info["MedicalRecordNumber"],
+                self.plan_info["PlanName"],
+                self.trial_info["Name"],
+                self.trial_info["ObjectVersion"]["WriteTimeStamp"],
+            ]
+
+        RTPLAN_prefix = f"{self._uid_prefix}1."
+        self._plan_inst_uid = pydicom.uid.generate_uid(
+            prefix=RTPLAN_prefix, entropy_srcs=entropy_srcs
+        )
+
+        RTDOSE_prefix = f"{self._uid_prefix}2."
+        self._dose_inst_uid = pydicom.uid.generate_uid(
+            prefix=RTDOSE_prefix, entropy_srcs=entropy_srcs
+        )
+        self.logger.debug(f"Plan Instance UID: {self._plan_inst_uid}")
+        self.logger.debug(f"Dose Instance UID: {self._dose_inst_uid}")
+
+    def generate_struct_uid(self, uid_type="HASH"):
+        entropy_srcs = []
+        if uid_type == "HASH":
+            entropy_srcs = [
+                self._pinnacle.patient_info["MedicalRecordNumber"],
+                self.plan_info["PlanName"],
+            ]
+
+        RTSTRUCT_prefix = f"{self._uid_prefix}3."
+        self._struct_inst_uid = pydicom.uid.generate_uid(
+            prefix=RTSTRUCT_prefix, entropy_srcs=entropy_srcs
+        )
+
+        self.logger.debug(f"Struct Instance UID: {self._struct_inst_uid}")
+
     def generate_uids(self, uid_type="HASH"):
         """Generates UIDs to be used for exporting this plan.
 
@@ -335,31 +374,8 @@ class PinnaclePlan:
                 to hash to consistant UIDs. If not then random UIDs will be
                 generated. Default: 'HASH'
         """
-
-        entropy_srcs = None
-        if uid_type == "HASH":
-            entropy_srcs = []
-            entropy_srcs.append(self._pinnacle.patient_info["MedicalRecordNumber"])
-            entropy_srcs.append(self.plan_info["PlanName"])
-            entropy_srcs.append(self.trial_info["Name"])
-            entropy_srcs.append(self.trial_info["ObjectVersion"]["WriteTimeStamp"])
-
-        RTPLAN_prefix = f"{self._uid_prefix}1."
-        self._plan_inst_uid = pydicom.uid.generate_uid(
-            prefix=RTPLAN_prefix, entropy_srcs=entropy_srcs
-        )
-        RTDOSE_prefix = f"{self._uid_prefix}2."
-        self._dose_inst_uid = pydicom.uid.generate_uid(
-            prefix=RTDOSE_prefix, entropy_srcs=entropy_srcs
-        )
-        RTSTRUCT_prefix = f"{self._uid_prefix}3."
-        self._struct_inst_uid = pydicom.uid.generate_uid(
-            prefix=RTSTRUCT_prefix, entropy_srcs=entropy_srcs
-        )
-
-        self.logger.debug(f"Plan Instance UID: {self._plan_inst_uid}")
-        self.logger.debug(f"Dose Instance UID: {self._dose_inst_uid}")
-        self.logger.debug(f"Struct Instance UID: {self._struct_inst_uid}")
+        self.generate_plan_dose_uids(uid_type)
+        self.generate_struct_uid(uid_type)
 
     @property
     def plan_inst_uid(self):
@@ -406,8 +422,18 @@ class PinnaclePlan:
 
         return self._struct_inst_uid
 
+    def convert_y_to_dicom(self, y):
+        # y is in mm
+        image_header = self.primary_image.image_header
+        if image_header["patient_position"] != "HFS":
+            raise ValueError("I only test for HFS, Aborting)")
+
+        return -float(image_header["y_start_dicom"]) * 10 - (
+            y - float(image_header["y_start"]) * 10
+        )
+
     # Convert the point from the pinnacle plan format to dicom
-    def convert_point(self, point):
+    def convert_point(self, point, apply_shift_y_fix=False):
         """Convert a point from Pinnacle coordinates to DICOM coordinates.
 
         Parameters
@@ -420,6 +446,13 @@ class PinnaclePlan:
             The converted point.
 
         """
+        if not isinstance(point, dict):
+            old_point = point
+            point = {
+                "XCoord": old_point[0],
+                "YCoord": old_point[1],
+                "ZCoord": old_point[2],
+            }
 
         image_header = self.primary_image.image_header
 
@@ -433,7 +466,10 @@ class PinnaclePlan:
             image_header["patient_position"] == "HFS"
             or image_header["patient_position"] == "FFS"
         ):
-            refpoint[1] = -(refpoint[1])
+            if apply_shift_y_fix:
+                refpoint[1] = self.convert_y_to_dicom(refpoint[1])
+            else:
+                refpoint[1] = -(refpoint[1])
         if (
             image_header["patient_position"] == "HFS"
             or image_header["patient_position"] == "HFP"

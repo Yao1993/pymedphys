@@ -119,6 +119,20 @@ def find_iso_center(plan):
     plan.logger.debug("Isocenter: %s", iso_center)
 
 
+def find_iso_center_by_name(plan, name):
+    iso_center = []
+
+    for point in plan.points:
+        refpoint = plan.convert_point(point, True)
+
+        if name in point["Name"]:
+            iso_center = refpoint
+
+    plan.logger.debug(f"Isocenter by name {name}: %s", iso_center)
+
+    return iso_center
+
+
 # Read points and insert them into the dicom dataset
 def read_points(ds, plan):
     plan.roi_count = 0
@@ -126,7 +140,7 @@ def read_points(ds, plan):
     for point in plan.points:
         plan.roi_count = plan.roi_count + 1
 
-        refpoint = plan.convert_point(point)
+        refpoint = plan.convert_point(point, True)
 
         roi_contour = pydicom.dataset.Dataset()
         roi_contour.ReferencedROINumber = str(plan.roi_count)
@@ -274,27 +288,36 @@ def read_roi(ds, plan, skip_pattern):
                 if image_header["patient_position"] == "HFS":
                     curr_points = [
                         float(curr_points[0]) * 10,
-                        -float(curr_points[1]) * 10,
+                        plan.convert_y_to_dicom(float(curr_points[1]) * 10),
                         -float(curr_points[2]) * 10,
                     ]
                 elif image_header["patient_position"] == "HFP":
-                    curr_points = [
-                        -float(curr_points[0]) * 10,
-                        float(curr_points[1]) * 10,
-                        -float(curr_points[2]) * 10,
-                    ]
+                    # curr_points = [
+                    #     -float(curr_points[0]) * 10,
+                    #     float(curr_points[1]) * 10,
+                    #     -float(curr_points[2]) * 10,
+                    # ]
+                    raise ValueError(
+                        f"Patient position {image_header['patient_position']} not supported"
+                    )
                 elif image_header["patient_position"] == "FFP":
-                    curr_points = [
-                        float(curr_points[0]) * 10,
-                        float(curr_points[1]) * 10,
-                        float(curr_points[2]) * 10,
-                    ]
+                    # curr_points = [
+                    #     float(curr_points[0]) * 10,
+                    #     float(curr_points[1]) * 10,
+                    #     float(curr_points[2]) * 10,
+                    # ]
+                    raise ValueError(
+                        f"Patient position {image_header['patient_position']} not supported"
+                    )
                 elif image_header["patient_position"] == "FFS":
-                    curr_points = [
-                        -float(curr_points[0]) * 10,
-                        -float(curr_points[1]) * 10,
-                        float(curr_points[2]) * 10,
-                    ]
+                    # curr_points = [
+                    #     -float(curr_points[0]) * 10,
+                    #     -float(curr_points[1]) * 10,
+                    #     float(curr_points[2]) * 10,
+                    # ]
+                    raise ValueError(
+                        f"Patient position {image_header['patient_position']} not supported"
+                    )
 
                 if len(points) == 3:
                     points[0] = round(points[0], 5)

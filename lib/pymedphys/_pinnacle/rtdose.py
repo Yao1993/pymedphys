@@ -44,10 +44,9 @@ import re
 import struct
 import time
 
+from pymedphys._dicom.orientation import IMAGE_ORIENTATION_MAP
 from pymedphys._imports import numpy as np
 from pymedphys._imports import pydicom
-
-from pymedphys._dicom.orientation import IMAGE_ORIENTATION_MAP
 
 from .constants import (
     GImplementationClassUID,
@@ -431,7 +430,12 @@ def convert_dose(plan, export_path):
         arr = ds.pixel_array
         ds.PixelData = np.flip(arr, axis=0).tostring()
 
+    # shift the image position patient to the correct position
+    ds.ImagePositionPatient[1] = plan.convert_y_to_dicom(-ds.ImagePositionPatient[1])
+
     # Save the RTDose Dicom File
     output_file = os.path.join(export_path, RDfilename)
     plan.logger.info("Creating Dose file: %s", output_file)
+    ds.save_as(output_file)
+    ds.save_as(output_file)
     ds.save_as(output_file)
