@@ -55,7 +55,7 @@ from .constants import (
 from .rtstruct import find_iso_center_by_name
 
 
-def convert_plan(plan, export_path):
+def convert_plan(plan, export_path, to_file=True):
     # Check that the plan has a primary image, as we can't create a meaningful RTPLAN without it:
     if not plan.primary_image:
         plan.logger.error("No primary image found for plan. Unable to generate RTPLAN.")
@@ -991,7 +991,10 @@ def convert_plan(plan, export_path):
     ds.FractionGroupSequence[0].NumberOfBeams = beam_count
     ds.FractionGroupSequence[0].NumberOfBrachyApplicationSetups = "0"
 
-    # Save the RTPlan Dicom File
-    output_file = os.path.join(export_path, RPfilename)
-    plan.logger.info("Creating Plan file: %s", output_file)
-    ds.save_as(output_file, write_like_original=False)
+    if to_file:
+        # Save the RTPlan Dicom File
+        output_file = os.path.join(export_path, RPfilename)
+        plan.logger.info("Creating Plan file: %s", output_file)
+        ds.save_as(output_file, write_like_original=False)
+
+    return ds

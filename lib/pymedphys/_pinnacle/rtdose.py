@@ -84,7 +84,7 @@ def trilinear_interpolation(idx, grid):
     return l3[0] * (1 - frac_idx[2]) + l3[1] * frac_idx[2]
 
 
-def convert_dose(plan, export_path):
+def convert_dose(plan, export_path, to_file=True):
     # Check that the plan has a primary image, as we can't create a meaningful RTDOSE without it:
     if not plan.primary_image:
         plan.logger.error("No primary image found for plan. Unable to generate RTDOSE.")
@@ -433,9 +433,10 @@ def convert_dose(plan, export_path):
     # shift the image position patient to the correct position
     ds.ImagePositionPatient[1] = plan.convert_y_to_dicom(-ds.ImagePositionPatient[1])
 
-    # Save the RTDose Dicom File
-    output_file = os.path.join(export_path, RDfilename)
-    plan.logger.info("Creating Dose file: %s", output_file)
-    ds.save_as(output_file)
-    ds.save_as(output_file)
-    ds.save_as(output_file)
+    if to_file:
+        # Save the RTDose Dicom File
+        output_file = os.path.join(export_path, RDfilename)
+        plan.logger.info("Creating Dose file: %s", output_file)
+        ds.save_as(output_file)
+
+    return ds

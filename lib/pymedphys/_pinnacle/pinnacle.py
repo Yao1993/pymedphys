@@ -196,7 +196,7 @@ class PinnacleExport:
         return self._images
 
     @staticmethod
-    def export_struct(plan, export_path=".", skip_pattern="^$"):
+    def export_struct(plan, export_path=".", skip_pattern="^$", to_file=True):
         """Exports the RTSTRUCT DICOM modality.
 
         Parameters
@@ -212,10 +212,10 @@ class PinnacleExport:
         """
 
         # Export Structures for plan
-        convert_struct(plan, export_path, skip_pattern)
+        return convert_struct(plan, export_path, skip_pattern, to_file)
 
     @staticmethod
-    def export_dose(plan, export_path="."):
+    def export_dose(plan, export_path=".", to_file=True):
         """Exports the RTDOSE DICOM modality.
 
         Parameters
@@ -228,10 +228,10 @@ class PinnacleExport:
         """
 
         # Export dose for plan
-        convert_dose(plan, export_path)
+        return convert_dose(plan, export_path, to_file)
 
     @staticmethod
-    def export_plan(plan, export_path="."):
+    def export_plan(plan, export_path=".", to_file=True):
         """Exports the RTPLAN DICOM modality.
 
         Parameters
@@ -244,9 +244,9 @@ class PinnacleExport:
         """
 
         # Export rtplan for plan
-        convert_plan(plan, export_path)
+        return convert_plan(plan, export_path, to_file)
 
-    def export_image(self, image=None, series_uid="", export_path="."):
+    def export_image(self, image=None, series_uid="", export_path=".", to_file=True):
         """Exports an image from the Pinnacle data.
 
         Parameters
@@ -267,11 +267,10 @@ class PinnacleExport:
             im_info = im.image_info[0]
             im_suid = im_info["SeriesUID"]
             if len(series_uid) > 0 and im_suid == series_uid:
-                convert_image(im, export_path)
-                break
+                return convert_image(im, export_path, to_file)
 
         if image:
-            convert_image(image, export_path)
+            return convert_image(image, export_path, to_file)
 
     def log_images(self):
         """Outputs all images found in the Pinnacle data to the log."""

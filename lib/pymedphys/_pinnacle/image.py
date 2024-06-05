@@ -49,7 +49,7 @@ from .constants import GImplementationClassUID, GTransferSyntaxUID
 # condensed pixel data from file ImageSet_%s.img
 
 
-def create_image_files(image, export_path):
+def create_image_files(image, export_path, to_file=True):
     # TODO: Fix this function, output not working
     image.logger.warn("Creating image files: The output of these are not correct!")
 
@@ -81,6 +81,7 @@ def create_image_files(image, export_path):
     image.logger.debug("Length of frames list: %s", len(allframeslist))
     image.logger.debug(image_info[0])
 
+    all_image_ds = []
     curframe = 0
     for info in image_info:
         sliceloc = -info["TablePosition"] * 10
@@ -178,13 +179,16 @@ def create_image_files(image, export_path):
 
         ds.PixelData = allframeslist[curframe].tostring()
 
-        output_file = os.path.join(export_path, image_file_name)
-        image.logger.info("Creating image: %s", output_file)
-        ds.save_as(output_file)
+        all_image_ds.append(ds)
+        if to_file:
+            output_file = os.path.join(export_path, image_file_name)
+            image.logger.info("Creating image: %s", output_file)
+            ds.save_as(output_file)
         curframe = curframe + 1
+    return all_image_ds
 
 
-def convert_image(image, export_path):
+def convert_image(image, export_path, to_file=True):
     image.logger.debug(
         "Converting image patient name, birthdate and id to match pinnacle"
     )
@@ -198,9 +202,9 @@ def convert_image(image, export_path):
         # Will want to call a function to be written that will create image set
         # files from the condensed pixel data file
         image.logger.info("Dicom Image files do not exist. Creating image files")
-        create_image_files(image, export_path)
-        return
+        return create_image_files(image, export_path)
 
+    all_image_ds = []
     for file in os.listdir(dicom_directory):
         # try:
         imageds = pydicom.read_file(os.path.join(dicom_directory, file), force=True)
@@ -217,9 +221,14 @@ def convert_image(image, export_path):
         if not preamble:
             preamble = b"\x00" * 128
 
+        all_image_ds.append(imageds)
+        if not to_file:
+            continue
+
         output_file = os.path.join(
             export_path, f"{image.image['Modality']}.{imageds.SOPInstanceUID}.dcm"
         )
-
         imageds.save_as(output_file, write_like_original=False)
         image.logger.info("Exported: %s to %s", file, output_file)
+
+    return all_image_ds

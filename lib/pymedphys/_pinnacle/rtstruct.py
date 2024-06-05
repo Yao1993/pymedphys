@@ -244,6 +244,7 @@ def read_roi(ds, plan, skip_pattern):
                     int(curvenum) - 1
                 ].NumberOfContourPoints = int(len(points) / 3)
 
+                points = [round(x, 5) for x in points]
                 ds.ROIContourSequence[plan.roi_count - 1].ContourSequence[
                     curvenum - 1
                 ].ContourData = points
@@ -319,6 +320,7 @@ def read_roi(ds, plan, skip_pattern):
                         f"Patient position {image_header['patient_position']} not supported"
                     )
 
+                # TODO: is this redundant after my conversion before setting ContourData?
                 if len(points) == 3:
                     points[0] = round(points[0], 5)
                     points[1] = round(points[1], 5)
@@ -340,7 +342,7 @@ def read_roi(ds, plan, skip_pattern):
                 roi_contour = pydicom.dataset.Dataset()
                 roi_contour.ReferencedROINumber = str(plan.roi_count)
                 ds.ROIContourSequence.append(roi_contour)
-                ds.StructureSetROISequence.append(roi_contour)
+                ds.StructureSetROISequence.append(pydicom.dataset.Dataset())
                 rt_roi_observations = pydicom.dataset.Dataset()
                 ds.RTROIObservationsSequence.append(rt_roi_observations)
                 ds.StructureSetROISequence[
@@ -415,7 +417,7 @@ def read_roi(ds, plan, skip_pattern):
     return ds
 
 
-def convert_struct(plan, export_path, skip_pattern):
+def convert_struct(plan, export_path, skip_pattern, to_file=True):
     # Check that the plan has a primary image, as we can't create a meaningful RTSTRUCT without it:
     if not plan.primary_image:
         plan.logger.error(
@@ -436,9 +438,6 @@ def convert_struct(plan, export_path, skip_pattern):
 
     struct_filename = f"RS.{struct_sop_instuid}.dcm"
 
-    ds = pydicom.dataset.FileDataset(
-        struct_filename, {}, file_meta=file_meta, preamble=b"\x00" * 128
-    )
     ds = pydicom.dataset.FileDataset(
         struct_filename, {}, file_meta=file_meta, preamble=b"\x00" * 128
     )
@@ -562,7 +561,10 @@ def convert_struct(plan, export_path, skip_pattern):
     ds.is_little_endian = True
     ds.is_implicit_VR = True
 
-    # Save the RTDose Dicom File
-    output_file = os.path.join(export_path, struct_filename)
-    plan.logger.info("Creating Struct file: %s", output_file)
-    ds.save_as(output_file, write_like_original=False)
+    if to_file:
+        # Save the RTDose Dicom File
+        output_file = os.path.join(export_path, struct_filename)
+        plan.logger.info("Creating Struct file: %s", output_file)
+        ds.save_as(output_file, write_like_original=False)
+
+    return ds
