@@ -38,6 +38,7 @@
 # SOFTWARE.
 
 
+import math
 import os
 import re
 import time
@@ -153,8 +154,6 @@ def convert_plan(plan, export_path, to_file=True):
     ds.FractionGroupSequence.append(pydicom.dataset.Dataset())
     ds.FractionGroupSequence[0].ReferencedBeamSequence = pydicom.sequence.Sequence()
 
-    metersetweight = ["0"]
-
     num_fractions = 0
     beam_count = 0
     beam_list = trial_info["BeamList"] if trial_info["BeamList"] else []
@@ -162,6 +161,8 @@ def convert_plan(plan, export_path, to_file=True):
         plan.logger.warning("No Beams found in Trial. Unable to generate RTPLAN.")
         return
     for beam in beam_list:
+        metersetweight = [0]
+
         beam_count = beam_count + 1
 
         plan.logger.info("Exporting Plan for beam: %s", beam["Name"])
@@ -391,10 +392,10 @@ def convert_plan(plan, export_path, to_file=True):
         else:
             ds.FractionGroupSequence[0].ReferencedBeamSequence[
                 beam_count - 1
-            ].BeamDose = prescripdose / 100
+            ].BeamDose = round(prescripdose / 100, 5)
             ds.FractionGroupSequence[0].ReferencedBeamSequence[
                 beam_count - 1
-            ].BeamMeterset = prescripdose / (normdose * dose_per_mu_at_cal)
+            ].BeamMeterset = round(prescripdose / (normdose * dose_per_mu_at_cal), 5)
 
         gantryrotdir = "NONE"
         if (
@@ -467,6 +468,7 @@ def convert_plan(plan, export_path, to_file=True):
                     )
                     metercount = metercount + 1
 
+                currentmeterset = round(currentmeterset, 5)
                 ds.BeamSequence[beam_count - 1].ControlPointSequence[
                     j
                 ].CumulativeMetersetWeight = currentmeterset
@@ -534,7 +536,10 @@ def convert_plan(plan, export_path, to_file=True):
                     ].RTBeamLimitingDeviceType = "ASYMX"
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
-                    ].BeamLimitingDevicePositionSequence[0].LeafJawPositions = [x1, x2]
+                    ].BeamLimitingDevicePositionSequence[0].LeafJawPositions = [
+                        round(x1, 5),
+                        round(x2, 5),
+                    ]
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].BeamLimitingDevicePositionSequence[
@@ -542,7 +547,10 @@ def convert_plan(plan, export_path, to_file=True):
                     ].RTBeamLimitingDeviceType = "ASYMY"
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
-                    ].BeamLimitingDevicePositionSequence[1].LeafJawPositions = [y1, y2]
+                    ].BeamLimitingDevicePositionSequence[1].LeafJawPositions = [
+                        round(y1, 5),
+                        round(y2, 5),
+                    ]
 
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
@@ -554,6 +562,7 @@ def convert_plan(plan, export_path, to_file=True):
                     ].BeamLimitingDevicePositionSequence[
                         2
                     ].RTBeamLimitingDeviceType = "MLCX"
+                    leafpositions = [round(x, 5) for x in leafpositions]
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].BeamLimitingDevicePositionSequence[
@@ -588,6 +597,7 @@ def convert_plan(plan, export_path, to_file=True):
                     ].BeamLimitingDevicePositionSequence[
                         0
                     ].RTBeamLimitingDeviceType = "MLCX"
+                    leafpositions = [round(x, 5) for x in leafpositions]
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].BeamLimitingDevicePositionSequence[
@@ -739,7 +749,7 @@ def convert_plan(plan, export_path, to_file=True):
                 ].ReferencedDoseReferenceSequence.append(pydicom.dataset.Dataset())
                 ds.BeamSequence[beam_count - 1].ControlPointSequence[
                     j
-                ].CumulativeMetersetWeight = metersetweight[j]
+                ].CumulativeMetersetWeight = round(metersetweight[j], 5)
                 if j == 0:  # first control point beam meterset always zero
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
@@ -801,7 +811,10 @@ def convert_plan(plan, export_path, to_file=True):
                     ].RTBeamLimitingDeviceType = "ASYMX"
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
-                    ].BeamLimitingDevicePositionSequence[0].LeafJawPositions = [x1, x2]
+                    ].BeamLimitingDevicePositionSequence[0].LeafJawPositions = [
+                        round(x1, 5),
+                        round(x2, 5),
+                    ]
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].BeamLimitingDevicePositionSequence[
@@ -809,7 +822,10 @@ def convert_plan(plan, export_path, to_file=True):
                     ].RTBeamLimitingDeviceType = "ASYMY"
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
-                    ].BeamLimitingDevicePositionSequence[1].LeafJawPositions = [y1, y2]
+                    ].BeamLimitingDevicePositionSequence[1].LeafJawPositions = [
+                        round(y1, 5),
+                        round(y2, 5),
+                    ]
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].BeamLimitingDevicePositionSequence.append(
@@ -820,6 +836,7 @@ def convert_plan(plan, export_path, to_file=True):
                     ].BeamLimitingDevicePositionSequence[
                         2
                     ].RTBeamLimitingDeviceType = "MLCX"
+                    leafpositions = [round(x, 5) for x in leafpositions]
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].BeamLimitingDevicePositionSequence[
@@ -864,6 +881,7 @@ def convert_plan(plan, export_path, to_file=True):
                     ].BeamLimitingDevicePositionSequence[
                         0
                     ].RTBeamLimitingDeviceType = "MLCX"
+                    leafpositions = [round(x, 5) for x in leafpositions]
                     ds.BeamSequence[beam_count - 1].ControlPointSequence[
                         j
                     ].BeamLimitingDevicePositionSequence[
@@ -977,6 +995,32 @@ def convert_plan(plan, export_path, to_file=True):
                     2
                 ].LeafPositionBoundaries = bounds
             numwedges = 0
+
+        preset_final_cumulative_meterset_weight = ds.BeamSequence[
+            beam_count - 1
+        ].FinalCumulativeMetersetWeight
+
+        actual_final_cumulative_meterset_weight = (
+            ds.BeamSequence[beam_count - 1]
+            .ControlPointSequence[-1]
+            .CumulativeMetersetWeight
+        )
+        if math.isclose(
+            float(preset_final_cumulative_meterset_weight),
+            float(actual_final_cumulative_meterset_weight),
+            rel_tol=1e-3,
+        ):
+            ds.BeamSequence[beam_count - 1].ControlPointSequence[
+                -1
+            ].CumulativeMetersetWeight = preset_final_cumulative_meterset_weight
+
+            ds.BeamSequence[beam_count - 1].ControlPointSequence[
+                -1
+            ].ReferencedDoseReferenceSequence[
+                0
+            ].CumulativeDoseReferenceCoefficient = (
+                preset_final_cumulative_meterset_weight
+            )
 
         # Get the prescription for this beam
         prescription = [
